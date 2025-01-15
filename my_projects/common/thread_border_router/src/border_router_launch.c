@@ -196,15 +196,6 @@ static void ot_task_worker(void *ctx)
     vTaskDelete(NULL);
 }
 
-static void test_process(void *aContext)
-{
-    while(true)
-    {
-        otCliOutputFormat("printing some random stuff...");
-        vTaskDelay(3000 / portTICK_PERIOD_MS);
-    }
-}
-
 void launch_openthread_border_router(const esp_openthread_platform_config_t *platform_config,
                                      const esp_rcp_update_config_t *update_config)
 {
@@ -216,6 +207,5 @@ void launch_openthread_border_router(const esp_openthread_platform_config_t *pla
     OT_UNUSED_VARIABLE(update_config);
 #endif
 
-    //xTaskCreate(test_process, "test_process", 4096, NULL, 5, NULL);
     xTaskCreate(ot_task_worker, "ot_br_main", 8192, xTaskGetCurrentTaskHandle(), 5, NULL);
 }
