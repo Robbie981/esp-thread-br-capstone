@@ -48,8 +48,17 @@
 #include "protocol_examples_common.h"
 #endif
 
+/*************DEFINES START*************/
 #define TAG "esp_ot_br"
 #define RCP_VERSION_MAX_SIZE 100
+
+#define MY_THREAD_PANID 0x2222 // 16 bit
+#define MY_THREAD_EXT_PANID {0x22, 0x22, 0x00, 0x00, 0xab, 0xce, 0x11, 0x22} // 64 bit
+#define MY_THREAD_NETWORK_NAME "my_ot_network"
+#define MY_INTERFACE_ID {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01}
+#define MY_MESH_LOCAL_PREFIX {0xfd, 0x00, 0x00, 0x00, 0xfb, 0x01, 0x00, 0x01}                                                  // 64 bits, first 8 bits always 0xfd
+#define MY_THREAD_NETWORK_KEY {0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff} // ot default key
+/*************DEFINES END*************/
 
 static esp_openthread_platform_config_t s_openthread_platform_config;
 
@@ -153,6 +162,76 @@ static void ot_br_init(void *ctx)
     vTaskDelete(NULL);
 }
 
+/**@brief Function for adding an IPv6-address. */
+void addIPv6Address(void)
+{
+    otInstance *myInstance = esp_openthread_get_instance();
+    otNetifAddress aAddress;
+    const otMeshLocalPrefix *ml_prefix = otThreadGetMeshLocalPrefix(myInstance);
+    uint8_t interfaceID[8]= MY_INTERFACE_ID;
+    
+    memcpy(&aAddress.mAddress.mFields.m8[0], ml_prefix, 8);
+    memcpy(&aAddress.mAddress.mFields.m8[8], interfaceID, 8);
+    
+    otError error = otIp6AddUnicastAddress(myInstance, &aAddress);
+    
+    if (error != OT_ERROR_NONE)
+        ESP_LOGW("Robbie:", "addIPAdress Error: %d\r\n", error);
+}
+
+static void config_thread_dataset(void)
+{
+    otInstance *myOtInstance = esp_openthread_get_instance();
+    otOperationalDataset aDataset;
+
+    // overwrite current active dataset
+    ESP_ERROR_CHECK(otDatasetGetActive(myOtInstance, &aDataset));
+    memset(&aDataset, 0, sizeof(otOperationalDataset));
+
+    aDataset.mActiveTimestamp.mSeconds = 0;
+    aDataset.mComponents.mIsActiveTimestampPresent = true;
+
+    aDataset.mChannel = 11;
+    aDataset.mComponents.mIsChannelPresent = true;
+
+    aDataset.mChannelMask = (otChannelMask)0x7fff800; // enables all radio channels (11–26)
+    aDataset.mComponents.mIsChannelMaskPresent = true;
+
+    aDataset.mPanId = (otPanId)MY_THREAD_PANID;
+    aDataset.mComponents.mIsPanIdPresent = true;
+
+    uint8_t extPanId[OT_EXT_PAN_ID_SIZE] = MY_THREAD_EXT_PANID;
+    memcpy(aDataset.mExtendedPanId.m8, extPanId, sizeof(aDataset.mExtendedPanId));
+    aDataset.mComponents.mIsExtendedPanIdPresent = true;
+
+    uint8_t key[OT_NETWORK_KEY_SIZE] = MY_THREAD_NETWORK_KEY;
+    memcpy(aDataset.mNetworkKey.m8, key, sizeof(aDataset.mNetworkKey));
+    aDataset.mComponents.mIsNetworkKeyPresent = true;
+
+    static char aNetworkName[] = MY_THREAD_NETWORK_NAME;
+    size_t length = strlen(aNetworkName);
+    assert(length <= OT_NETWORK_NAME_MAX_SIZE);
+    memcpy(aDataset.mNetworkName.m8, aNetworkName, length);
+    aDataset.mComponents.mIsNetworkNamePresent = true;
+
+    uint8_t meshLocalPrefix[OT_MESH_LOCAL_PREFIX_SIZE] = MY_MESH_LOCAL_PREFIX;
+    memcpy(aDataset.mMeshLocalPrefix.m8, meshLocalPrefix, sizeof(aDataset.mMeshLocalPrefix));
+    aDataset.mComponents.mIsMeshLocalPrefixPresent = true;
+
+    otDatasetSetActive(myOtInstance, &aDataset); // cli command: dataset commit active
+}
+
+static void thread_network_start(void)
+{
+    otInstance *myOtInstance = esp_openthread_get_instance();
+     
+    /* Start the Thread network interface (cli command: ifconfig up) */
+    otIp6SetEnabled(myOtInstance, true);
+    
+    /* Start the Thread stack (cli command: thread start) */
+    //otThreadSetEnabled(myOtInstance, true);
+}
+
 static void ot_task_worker(void *ctx)
 {
     esp_netif_config_t cfg = ESP_NETIF_DEFAULT_OPENTHREAD();
@@ -180,11 +259,22 @@ static void ot_task_worker(void *ctx)
     esp_openthread_lock_release();
 
     xTaskCreate(ot_br_init, "ot_br_init", 6144, NULL, 4, NULL);
+
      /**
      * Set up the callback  to start transferring UDP/CoAP messages
      * the moment the border router attaches to the a Thread network.
      */
     otSetStateChangedCallback(esp_openthread_get_instance(), serverStartCallback, NULL);
+
+    // Configure custome thread dataset
+    config_thread_dataset();
+
+    // Add an IPv6 address
+    addIPv6Address();
+    
+    // Start the thread network automatically
+    // thread_network_start();
+
     // Run the main loop
     esp_openthread_launch_mainloop();
 
