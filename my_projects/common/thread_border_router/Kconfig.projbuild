@@ -57,7 +57,7 @@ menu "ESP Thread Border Router Example"
 
     config OPENTHREAD_BR_AUTO_START
         bool 'Enable the automatic start mode in Thread Border Router.'
-        default n
+        default y
         help
             If enabled, The Thread Border Router will connect to Wi-Fi with pre-configured
             SSID and PSK, and then form a Thread network automatically. Otherwise, user need
@@ -101,4 +101,18 @@ menu "ESP Thread Border Router Example"
             default 11
     endmenu # External coexist wire type and pin config
 
+endmenu
+
+menu "Custom Wi-Fi Configuration"
+    config WIFI_SSID
+        string "Wi-Fi SSID"
+        default "CIKTEL_PORTAL_9856"
+        help
+            The Wi-Fi SSID to connect to.
+
+    config WIFI_PASSWORD
+        string "Wi-Fi Password"
+        default "77d16eb6"
+        help
+            The Wi-Fi password for the Wi-Fi SSID.
 endmenu

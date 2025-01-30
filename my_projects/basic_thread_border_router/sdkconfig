@@ -636,6 +636,13 @@ CONFIG_PIN_TO_RCP_RX=18
 # end of ESP Thread Border Router Example
 
 #
+# Custom Wi-Fi Configuration
+#
+CONFIG_WIFI_SSID="CIKTEL_PORTAL_9856"
+CONFIG_WIFI_PASSWORD="77d16eb6"
+# end of Custom Wi-Fi Configuration
+
+#
 # Compiler options
 #
 # CONFIG_COMPILER_OPTIMIZATION_DEBUG is not set

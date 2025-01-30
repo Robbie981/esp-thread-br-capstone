@@ -626,13 +626,20 @@ CONFIG_PIN_TO_RCP_TX=17
 CONFIG_PIN_TO_RCP_RX=18
 # end of Board Configuration
 
-# CONFIG_OPENTHREAD_BR_AUTO_START is not set
+CONFIG_OPENTHREAD_BR_AUTO_START=y
 # CONFIG_OPENTHREAD_BR_START_WEB is not set
 
 #
 # External coexist wire type and pin config
 #
 # end of External coexist wire type and pin config
+
+#
+# Example Connection Configuration
+#
+CONFIG_CONFIG_EXAMPLE_WIFI_SSID="CIKTEL_PORTAL_"
+CONFIG_CONFIG_EXAMPLE_WIFI_PASSWORD="77d"
+# end of Example Connection Configuration
 # end of ESP Thread Border Router Example
 
 #
