@@ -6,7 +6,7 @@
  */
 
 #include "border_router_launch.h"
-#include "server.h"
+#include "coap_server.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -37,6 +37,7 @@
 #include "openthread/platform/radio.h"
 #include "openthread/tasklet.h"
 #include "openthread/thread_ftd.h"
+#include "esp_wifi.h"
 
 #if CONFIG_OPENTHREAD_CLI_WIFI
 #include "esp_ot_wifi_cmd.h"
@@ -112,53 +113,23 @@ static void rcp_failure_handler(void)
 #endif
 }
 
-static void ot_br_init(void *ctx)
+static void ot_br_wifi_init(void *ctx)
 {
-#if CONFIG_OPENTHREAD_CLI_WIFI
-    ESP_ERROR_CHECK(esp_ot_wifi_config_init());
-#endif
-#if CONFIG_OPENTHREAD_BR_AUTO_START
-#if CONFIG_EXAMPLE_CONNECT_WIFI || CONFIG_EXAMPLE_CONNECT_ETHERNET
-    bool wifi_or_ethernet_connected = false;
-#else
-#error No backbone netif!
-#endif
-#if CONFIG_EXAMPLE_CONNECT_WIFI
-    char wifi_ssid[32] = "";
-    char wifi_password[64] = "";
-    if (esp_ot_wifi_config_get_ssid(wifi_ssid) == ESP_OK) {
-        ESP_LOGI(TAG, "use the Wi-Fi config from NVS");
-        esp_ot_wifi_config_get_password(wifi_password);
-    } else {
-        ESP_LOGI(TAG, "use the Wi-Fi config from Kconfig");
-        strcpy(wifi_ssid, CONFIG_EXAMPLE_WIFI_SSID);
-        strcpy(wifi_password, CONFIG_EXAMPLE_WIFI_PASSWORD);
-    }
+    char wifi_ssid[32] = "CIKTEL_PORTAL_FASTLANE_9856";
+    char wifi_password[64] = "77d16eb6";
+    // if (esp_ot_wifi_config_get_ssid(wifi_ssid) == ESP_OK) {
+    //     ESP_LOGI(TAG, "use the Wi-Fi config from NVS");
+    //     esp_ot_wifi_config_get_password(wifi_password);
+    // } else {
+    //     ESP_LOGI(TAG, "use the Wi-Fi config from Kconfig");
+    //     strcpy(wifi_ssid, CONFIG_EXAMPLE_WIFI_SSID);
+    //     strcpy(wifi_password, CONFIG_EXAMPLE_WIFI_PASSWORD);
+    // }
     if (esp_ot_wifi_connect(wifi_ssid, wifi_password) == ESP_OK) {
-        wifi_or_ethernet_connected = true;
+        ESP_LOGI("Robbie: ", "Wi-Fi connected to %s.", wifi_ssid);
     } else {
         ESP_LOGE(TAG, "Fail to connect to Wi-Fi, please try again manually");
     }
-#endif
-#if CONFIG_EXAMPLE_CONNECT_ETHERNET
-    ESP_ERROR_CHECK(example_ethernet_connect());
-    wifi_or_ethernet_connected = true;
-#endif
-    if (wifi_or_ethernet_connected) {
-        esp_openthread_lock_acquire(portMAX_DELAY);
-        esp_openthread_set_backbone_netif(get_example_netif());
-        ESP_ERROR_CHECK(esp_openthread_border_router_init());
-#if CONFIG_EXAMPLE_CONNECT_WIFI
-        esp_ot_wifi_border_router_init_flag_set(true);
-#endif
-        otOperationalDatasetTlvs dataset;
-        otError error = otDatasetGetActiveTlvs(esp_openthread_get_instance(), &dataset);
-        ESP_ERROR_CHECK(esp_openthread_auto_start((error == OT_ERROR_NONE) ? &dataset : NULL));
-        esp_openthread_lock_release();
-    } else {
-        ESP_LOGE(TAG, "Auto-start mode failed, please try to start manually");
-    }
-#endif // CONFIG_OPENTHREAD_BR_AUTO_START
     vTaskDelete(NULL);
 }
 
@@ -176,7 +147,7 @@ void addIPv6Address(void)
     otError error = otIp6AddUnicastAddress(myInstance, &aAddress);
     
     if (error != OT_ERROR_NONE)
-        ESP_LOGW("Robbie:", "addIPAdress Error: %d\r\n", error);
+        ESP_LOGW("Robbie: ", "addIPAdress Error: %d\r\n", error);
 }
 
 static void config_thread_dataset(void)
@@ -221,15 +192,20 @@ static void config_thread_dataset(void)
     otDatasetSetActive(myOtInstance, &aDataset); // cli command: dataset commit active
 }
 
-static void thread_network_start(void)
+static void thread_network_start(void *ctx)
 {
     otInstance *myOtInstance = esp_openthread_get_instance();
-     
+    vTaskDelay(2500 / portTICK_PERIOD_MS); // delay to let other processes finish
+    esp_openthread_lock_acquire(portMAX_DELAY);
+
     /* Start the Thread network interface (cli command: ifconfig up) */
     otIp6SetEnabled(myOtInstance, true);
     
     /* Start the Thread stack (cli command: thread start) */
-    //otThreadSetEnabled(myOtInstance, true);
+    otThreadSetEnabled(myOtInstance, true);
+
+    esp_openthread_lock_release();
+    vTaskDelete(NULL);
 }
 
 static void ot_task_worker(void *ctx)
@@ -258,7 +234,7 @@ static void ot_task_worker(void *ctx)
     esp_openthread_cli_create_task();
     esp_openthread_lock_release();
 
-    xTaskCreate(ot_br_init, "ot_br_init", 6144, NULL, 4, NULL);
+    xTaskCreate(ot_br_wifi_init, "ot_br_wifi_init", 6144, NULL, 4, NULL);
 
      /**
      * Set up the callback  to start transferring UDP/CoAP messages
@@ -276,7 +252,7 @@ static void ot_task_worker(void *ctx)
     // thread_network_start();
 
     // Run the main loop
-    esp_openthread_launch_mainloop();
+    esp_openthread_launch_mainloop(); //this loop blocks
 
     // Clean up
     esp_openthread_netif_glue_deinit();
@@ -298,4 +274,5 @@ void launch_openthread_border_router(const esp_openthread_platform_config_t *pla
 #endif
 
     xTaskCreate(ot_task_worker, "ot_br_main", 8192, xTaskGetCurrentTaskHandle(), 5, NULL);
+    xTaskCreate(thread_network_start, "thread_start", 4096, xTaskGetCurrentTaskHandle(), 3, NULL);
 }

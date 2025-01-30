@@ -2,7 +2,7 @@
 #include <unistd.h>
 #include <string.h>
 
-#include "server.h"
+#include "coap_server.h"
 #include "misc.h"
 #include "esp_log.h"
 
@@ -40,7 +40,7 @@ static void coap_request_handler(void * p_context, otMessage * p_message, const 
         otCliOutputFormat(msg_rcvd);
         otCliOutputFormat("\r\n");
     
-        if (messageType == OT_COAP_TYPE_CONFIRMABLE)
+        if (messageType == OT_COAP_TYPE_CONFIRMABLE) // If confirmable message, reply with confirmation
         {
             ESP_LOGI(LOCAL_DEBUG_TAG, "Sending CoAP confirmation...");
             coap_response_send(p_message, p_message_info);
