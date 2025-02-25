@@ -633,14 +633,14 @@ CONFIG_OPENTHREAD_BR_AUTO_START=y
 # External coexist wire type and pin config
 #
 # end of External coexist wire type and pin config
+# end of ESP Thread Border Router Example
 
 #
-# Example Connection Configuration
+# Custom Wi-Fi Configuration
 #
-CONFIG_CONFIG_EXAMPLE_WIFI_SSID="CIKTEL_PORTAL_"
-CONFIG_CONFIG_EXAMPLE_WIFI_PASSWORD="77d"
-# end of Example Connection Configuration
-# end of ESP Thread Border Router Example
+CONFIG_WIFI_SSID="CIKTEL_PORTAL_9856"
+CONFIG_WIFI_PASSWORD="77d16eb6"
+# end of Custom Wi-Fi Configuration
 
 #
 # Compiler options

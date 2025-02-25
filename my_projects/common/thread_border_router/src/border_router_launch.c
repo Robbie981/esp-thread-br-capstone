@@ -222,22 +222,6 @@ static void config_thread_dataset(void)
     otDatasetSetActive(myOtInstance, &aDataset); // cli command: dataset commit active
 }
 
-static void thread_network_start(void *ctx)
-{
-    otInstance *myOtInstance = esp_openthread_get_instance();
-    vTaskDelay(2500 / portTICK_PERIOD_MS); // delay to let other processes finish
-    esp_openthread_lock_acquire(portMAX_DELAY);
-
-    /* Start the Thread network interface (cli command: ifconfig up) */
-    otIp6SetEnabled(myOtInstance, true);
-    
-    /* Start the Thread stack (cli command: thread start) */
-    otThreadSetEnabled(myOtInstance, true);
-
-    esp_openthread_lock_release();
-    vTaskDelete(NULL);
-}
-
 static void ot_task_worker(void *ctx)
 {
     esp_netif_config_t cfg = ESP_NETIF_DEFAULT_OPENTHREAD();
@@ -277,9 +261,6 @@ static void ot_task_worker(void *ctx)
 
     // Add an IPv6 address
     addIPv6Address();
-    
-    // Start the thread network automatically
-    // thread_network_start();
 
     // Run the main loop
     esp_openthread_launch_mainloop(); //this loop blocks
@@ -304,5 +285,4 @@ void launch_openthread_border_router(const esp_openthread_platform_config_t *pla
 #endif
 
     xTaskCreate(ot_task_worker, "ot_br_main", 8192, xTaskGetCurrentTaskHandle(), 5, NULL);
-    xTaskCreate(thread_network_start, "thread_start", 4096, xTaskGetCurrentTaskHandle(), 3, NULL);
 }

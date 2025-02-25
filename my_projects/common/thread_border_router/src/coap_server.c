@@ -5,6 +5,7 @@
 #include "coap_server.h"
 #include "misc.h"
 #include "esp_log.h"
+#include "esp_http_client.h"
 
 static void coap_request_handler(void * p_context, otMessage * p_message, const otMessageInfo * p_message_info);
 static void coap_response_send(otMessage * p_request_message, const otMessageInfo * p_message_info);
@@ -106,6 +107,38 @@ static void startCoapServer(uint16_t port)
     return;
 }
 
+esp_err_t client_event_post_handler(esp_http_client_event_handle_t evt)
+{
+    switch (evt->event_id)
+    {
+    case HTTP_EVENT_ON_DATA:
+        printf("HTTP_EVENT_ON_DATA: %.*s\n", evt->data_len, (char *)evt->data);
+        break;
+
+    default:
+        break;
+    }
+    return ESP_OK;
+}
+
+static void post_rest_function()
+{
+    esp_http_client_config_t config_post = {
+        .url = "http://httpbin.org/post",
+        .method = HTTP_METHOD_POST,
+        .cert_pem = NULL,
+        .event_handler = client_event_post_handler};
+        
+    esp_http_client_handle_t client = esp_http_client_init(&config_post);
+
+    char  *post_data = "test ...";
+    esp_http_client_set_post_field(client, post_data, strlen(post_data));
+    esp_http_client_set_header(client, "Content-Type", "application/json");
+
+    esp_http_client_perform(client);
+    esp_http_client_cleanup(client);
+}
+
 /**
  * Callback function to start UDP/CoAP server
  */
@@ -118,8 +151,10 @@ void serverStartCallback(otChangedFlags changed_flags, void* ctx)
     otDeviceRole role = otThreadGetDeviceRole(OT_INSTANCE);
     if (role == OT_DEVICE_ROLE_LEADER && s_previous_role != role)  // some role -> leader   
     {
-        ESP_LOGI(LOCAL_DEBUG_TAG, "Role changed to leader, starting CoAP server...");
-        startCoapServer(OT_DEFAULT_COAP_PORT);
+        // ESP_LOGI(LOCAL_DEBUG_TAG, "Role changed to leader, starting CoAP server...");
+        // startCoapServer(OT_DEFAULT_COAP_PORT);
+        ESP_LOGI(LOCAL_DEBUG_TAG, "Role changed to leader, testing HTTP...");
+        post_rest_function();
     }
     s_previous_role = role;
 }
