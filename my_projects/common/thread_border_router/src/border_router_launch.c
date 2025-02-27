@@ -7,6 +7,7 @@
 
 #include "border_router_launch.h"
 #include "coap_server.h"
+#include "misc.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -127,14 +128,10 @@ static void ot_br_wifi_init(void *ctx)
 #if CONFIG_EXAMPLE_CONNECT_WIFI
     char wifi_ssid[32] = "";
     char wifi_password[64] = "";
-    if (esp_ot_wifi_config_get_ssid(wifi_ssid) == ESP_OK) {
-        ESP_LOGI(TAG, "use the Wi-Fi config from NVS");
-        esp_ot_wifi_config_get_password(wifi_password);
-    } else {
-        ESP_LOGI(TAG, "use the Wi-Fi config from Kconfig");
-        strcpy(wifi_ssid, CONFIG_WIFI_SSID);
-        strcpy(wifi_password, CONFIG_WIFI_PASSWORD);
-    }
+    strcpy(wifi_ssid, CONFIG_WIFI_SSID);
+    strcpy(wifi_password, CONFIG_WIFI_PASSWORD);
+    ESP_LOGI(LOCAL_DEBUG_TAG, "Wi-Fi config from Kconfig -> ssid: %s, password: %s", wifi_ssid, wifi_password);
+
     if (esp_ot_wifi_connect(wifi_ssid, wifi_password) == ESP_OK) {
         wifi_or_ethernet_connected = true;
     } else {
@@ -238,7 +235,7 @@ static void ot_task_worker(void *ctx)
 #endif
     // Initialize border routing features
     esp_openthread_lock_acquire(portMAX_DELAY);
-    ESP_ERROR_CHECK(esp_netif_attach(openthread_netif, esp_openthread_netif_glue_init(&s_openthread_platform_config)));
+    //ESP_ERROR_CHECK(esp_netif_attach(openthread_netif, esp_openthread_netif_glue_init(&s_openthread_platform_config)));
 #if CONFIG_OPENTHREAD_LOG_LEVEL_DYNAMIC
     (void)otLoggingSetLevel(CONFIG_LOG_DEFAULT_LEVEL);
 #endif

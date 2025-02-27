@@ -67,7 +67,7 @@ menu "ESP Thread Border Router Example"
         bool 'Enable the web server in Thread Border Router.'
         select OPENTHREAD_COMMISSIONER
         select OPENTHREAD_JOINER
-        default n
+        default y
         help
             If enabled, a web server will be provided to configure and query Thread network via a Web GUI. 
 
@@ -106,13 +106,15 @@ endmenu
 menu "Custom Wi-Fi Configuration"
     config WIFI_SSID
         string "Wi-Fi SSID"
-        default "CIKTEL_PORTAL_9856"
+        # default "CIKTEL_PORTAL_9856"
+        default "GL-SFT1200-d00"
         help
             The Wi-Fi SSID to connect to.
 
     config WIFI_PASSWORD
         string "Wi-Fi Password"
-        default "77d16eb6"
+        # default "77d16eb6"
+        default "goodlife"
         help
             The Wi-Fi password for the Wi-Fi SSID.
 endmenu

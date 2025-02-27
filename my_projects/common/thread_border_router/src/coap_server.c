@@ -6,6 +6,7 @@
 #include "misc.h"
 #include "esp_log.h"
 #include "esp_http_client.h"
+#include "esp_wifi.h"
 
 static void coap_request_handler(void * p_context, otMessage * p_message, const otMessageInfo * p_message_info);
 static void coap_response_send(otMessage * p_request_message, const otMessageInfo * p_message_info);
@@ -107,14 +108,15 @@ static void startCoapServer(uint16_t port)
     return;
 }
 
-esp_err_t client_event_post_handler(esp_http_client_event_handle_t evt)
+static esp_err_t client_event_post_handler(esp_http_client_event_t *evt)
 {
     switch (evt->event_id)
     {
     case HTTP_EVENT_ON_DATA:
-        printf("HTTP_EVENT_ON_DATA: %.*s\n", evt->data_len, (char *)evt->data);
+        if (evt->data_len > 0) {
+            printf("HTTP_EVENT_ON_DATA: %.*s\n", evt->data_len, (char *)evt->data);
+        }
         break;
-
     default:
         break;
     }
@@ -126,16 +128,31 @@ static void post_rest_function()
     esp_http_client_config_t config_post = {
         .url = "http://httpbin.org/post",
         .method = HTTP_METHOD_POST,
-        .cert_pem = NULL,
-        .event_handler = client_event_post_handler};
+        .event_handler = client_event_post_handler,
+        .timeout_ms = 10000,
+        .keep_alive_enable = true
+    };
         
     esp_http_client_handle_t client = esp_http_client_init(&config_post);
 
-    char  *post_data = "test ...";
-    esp_http_client_set_post_field(client, post_data, strlen(post_data));
+    const char *post_data = "{\"message\": \"test ...\"}";
     esp_http_client_set_header(client, "Content-Type", "application/json");
+    esp_http_client_set_header(client, "Connection", "keep-alive");
+    esp_http_client_set_post_field(client, post_data, strlen(post_data));
 
-    esp_http_client_perform(client);
+    esp_err_t err = ESP_OK;
+    for (int i = 0; i < 3; i++) {
+        err = esp_http_client_perform(client);
+        if (err == ESP_OK) {
+            ESP_LOGI(LOCAL_DEBUG_TAG, "HTTP POST Status = %d, content_length = %" PRId64,
+                esp_http_client_get_status_code(client),
+                esp_http_client_get_content_length(client));
+        } else {
+            ESP_LOGE(LOCAL_DEBUG_TAG, "HTTP POST request failed: %s", esp_err_to_name(err));
+        }
+        vTaskDelay(2000 / portTICK_PERIOD_MS);
+    }
+
     esp_http_client_cleanup(client);
 }
 
