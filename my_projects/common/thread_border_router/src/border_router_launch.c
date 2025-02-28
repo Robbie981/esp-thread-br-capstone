@@ -253,7 +253,7 @@ static void ot_task_worker(void *ctx)
      */
     otSetStateChangedCallback(esp_openthread_get_instance(), serverStartCallback, NULL);
 
-    // Configure custome thread dataset
+    // Configure custom thread dataset
     config_thread_dataset();
 
     // Add an IPv6 address
