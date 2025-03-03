@@ -7,29 +7,31 @@
 #include "esp_log.h"
 #include "esp_http_client.h"
 #include "esp_wifi.h"
+#include "esp_crt_bundle.h"
 
-// static esp_err_t client_event_post_handler(esp_http_client_event_t *evt)
-// {
-//     switch (evt->event_id)
-//     {
-//     case HTTP_EVENT_ON_DATA:
-//         if (evt->data_len > 0) {
-//             printf("HTTP_EVENT_ON_DATA: %.*s\n", evt->data_len, (char *)evt->data);
-//         }
-//         break;
-//     default:
-//         break;
-//     }
-//     return ESP_OK;
-// }
+static esp_err_t client_event_post_handler(esp_http_client_event_t *evt)
+{
+    switch (evt->event_id)
+    {
+    case HTTP_EVENT_ON_DATA:
+        if (evt->data_len > 0) {
+            printf("HTTP_EVENT_ON_DATA: %.*s\n", evt->data_len, (char *)evt->data);
+        }
+        break;
+    default:
+        break;
+    }
+    return ESP_OK;
+}
 
 static void post_to_database(char *data)
 {
     esp_http_client_config_t config_post = {
-        .url = "http://httpbin.org/post",
+        .url = "https://airborne-897502924648.northamerica-northeast1.run.app/api/data",
         .method = HTTP_METHOD_POST,
-        .event_handler = NULL,
-        .keep_alive_enable = true
+        .crt_bundle_attach = esp_crt_bundle_attach,
+        .event_handler = client_event_post_handler,
+        .keep_alive_enable = true,
     };
         
     esp_http_client_handle_t client = esp_http_client_init(&config_post);
